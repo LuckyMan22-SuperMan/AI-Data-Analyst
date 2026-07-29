@@ -1,0 +1,11 @@
+Date,Region,Product_Category,Units_Sold,Revenue,Cost
+2023-01-01,North,Electronics,150,15000.00,10000.00
+2023-01-02,South,Apparel,200,5000.50,2000.00
+2023-01-03,East,Electronics,,12000.00,8000.00
+2023-01-04,West,Home & Garden,50,2500.00,
+2023-01-05,North,Apparel,300,7500.00,3000.00
+2023-01-06,South,Electronics,180,18000.00,12000.00
+2023-01-07,East,,100,3000.00,1500.00
+2023-01-08,West,Apparel,250,6250.00,2500.00
+2023-01-09,North,Home & Garden,80,4000.00,2000.00
+2023-01-10,South,Electronics,210,21000.00,14000.00
