@@ -1,5 +1,3 @@
-"""Upload and preview endpoints (Phase 1)."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -49,3 +47,13 @@ async def upload(file: UploadFile = File(...)) -> UploadResponse:
         column_names=[str(c) for c in df.columns],
         sample=records(df.head(5)),
     )
+
+
+@router.get("/preview", response_model=PreviewResponse)
+def preview(dataset_id: str) -> PreviewResponse:
+    """Return schema, dtypes, missing values, duplicates, and the first 20 rows."""
+    try:
+        ds = service.get(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found. Upload again.")
+    return PreviewResponse(**build_preview(ds))
