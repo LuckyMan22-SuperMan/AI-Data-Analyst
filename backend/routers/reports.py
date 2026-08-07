@@ -21,3 +21,17 @@ class ForecastRequest(BaseModel):
     period: str = "M"
     date_column: str | None = None
     metric: str | None = None
+
+
+def _get_df(dataset_id: str):
+    try:
+        return service.get(dataset_id).df
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found. Upload again.")
+
+
+def _get_ds(dataset_id: str):
+    try:
+        return service.get(dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found. Upload again.")
