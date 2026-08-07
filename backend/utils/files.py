@@ -19,3 +19,9 @@ def validate_extension(filename: str) -> str:
         )
     return ext
 
+
+def validate_size(data: bytes) -> None:
+    if len(data) == 0:
+        raise ValueError("Uploaded file is empty.")
+    if len(data) > MAX_BYTES:
+        raise ValueError(f"File too large ({len(data) // (1024*1024)} MB). Max is 50 MB.")
