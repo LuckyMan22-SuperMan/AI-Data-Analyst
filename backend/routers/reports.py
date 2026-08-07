@@ -35,3 +35,12 @@ def _get_ds(dataset_id: str):
         return service.get(dataset_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Dataset not found. Upload again.")
+
+
+@router.get("/insights")
+def get_insights(dataset_id: str) -> dict:
+    df = _get_df(dataset_id)
+    try:
+        return insights.generate(df)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Insight generation failed: {exc}")
