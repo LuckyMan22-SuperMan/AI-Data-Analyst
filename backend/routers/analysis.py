@@ -22,3 +22,10 @@ _MAX_HISTORY = 12
 @router.get("/ai-status")
 def ai_status() -> dict:
     return {"llm": llm.info()}
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
+    question = (req.question or "").strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Please enter a question.")
