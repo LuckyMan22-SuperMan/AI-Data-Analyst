@@ -13,3 +13,11 @@ from backend.services import cleaning, forecast, insights
 from backend.services.dataset import build_preview, service
 
 router = APIRouter(tags=["reports"])
+
+
+class ForecastRequest(BaseModel):
+    dataset_id: str
+    periods: int = 6
+    period: str = "M"
+    date_column: str | None = None
+    metric: str | None = None
