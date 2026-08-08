@@ -65,3 +65,17 @@ def make_forecast(req: ForecastRequest) -> dict:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Forecast failed: {exc}")
+
+
+@router.get("/export", response_class=HTMLResponse)
+def export_report(dataset_id: str) -> HTMLResponse:
+    """Generate a standalone HTML report (preview + insights + cleaning)."""
+    ds = _get_ds(dataset_id)
+    preview = build_preview(ds, head_n=10)
+    ins = insights.generate(ds.df)
+    clean_res = cleaning.detect(ds.df)
+    html_doc = _render_report(ds.filename, preview, ins, clean_res)
+    return HTMLResponse(
+        content=html_doc,
+        headers={"Content-Disposition": f'attachment; filename="report_{dataset_id}.html"'},
+    )
