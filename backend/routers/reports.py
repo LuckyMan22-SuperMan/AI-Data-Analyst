@@ -44,3 +44,12 @@ def get_insights(dataset_id: str) -> dict:
         return insights.generate(df)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Insight generation failed: {exc}")
+
+
+@router.post("/clean")
+def clean(dataset_id: str) -> dict:
+    df = _get_df(dataset_id)
+    try:
+        return cleaning.detect(df)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cleaning analysis failed: {exc}")
