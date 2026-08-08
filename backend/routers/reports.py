@@ -53,3 +53,15 @@ def clean(dataset_id: str) -> dict:
         return cleaning.detect(df)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Cleaning analysis failed: {exc}")
+
+
+@router.post("/forecast")
+def make_forecast(req: ForecastRequest) -> dict:
+    df = _get_df(req.dataset_id)
+    try:
+        return forecast.forecast(df, periods=req.periods, period=req.period,
+                                 date_col=req.date_column, metric=req.metric)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Forecast failed: {exc}")
