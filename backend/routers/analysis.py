@@ -29,3 +29,12 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
     question = (req.question or "").strip()
     if not question:
         raise HTTPException(status_code=400, detail="Please enter a question.")
+    try:
+        ds = service.get(req.dataset_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dataset not found. Upload again.")
+
+    try:
+        result = analysis.analyze(question, ds.df, ds.history)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
