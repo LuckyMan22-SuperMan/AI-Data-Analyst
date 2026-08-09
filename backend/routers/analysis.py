@@ -38,3 +38,11 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
         result = analysis.analyze(question, ds.df, ds.history)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
+
+    # Update conversation context for follow-ups.
+    ds.history.append({"role": "user", "content": question})
+    ds.history.append({"role": "assistant", "content": result["explanation"]})
+    if len(ds.history) > _MAX_HISTORY:
+        ds.history[:] = ds.history[-_MAX_HISTORY:]
+
+    return AnalyzeResponse(**result)
