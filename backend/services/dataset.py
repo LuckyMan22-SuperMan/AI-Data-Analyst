@@ -26,3 +26,32 @@ class Dataset:
     df: pd.DataFrame
     # Per-dataset chat history for follow-up context (used from Phase 2).
     history: List[Dict[str, str]] = field(default_factory=list)
+
+
+def load_dataframe(path: Path, filename: str) -> pd.DataFrame:
+    """Read a CSV/Excel file into a DataFrame with light type inference."""
+    ext = validate_extension(filename)
+    if ext == ".csv":
+        df = pd.read_csv(path)
+    else:
+        df = pd.read_excel(path)
+    if df.empty:
+        raise ValueError("The file was read but contains no rows.")
+    # Attempt to parse object columns that look like dates.
+    df = _infer_datetimes(df)
+    return df
+
+
+def _infer_datetimes(df: pd.DataFrame) -> pd.DataFrame:
+    for col in df.columns:
+        # pandas >= 3.0 reads text as the native "str" dtype (not "object"),
+        # so accept both object and string dtypes here.
+        is_texty = pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_string_dtype(df[col])
+        if is_texty:
+            name = str(col).lower()
+            if any(k in name for k in ("date", "time", "day", "month", "year")):
+                parsed = pd.to_datetime(df[col], errors="coerce")
+                # Only adopt if most values parsed successfully.
+                if parsed.notna().mean() >= 0.8:
+                    df[col] = parsed
+    return df
