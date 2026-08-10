@@ -29,3 +29,30 @@ def is_available() -> bool:
 
 def info() -> Dict[str, Any]:
     return {"available": is_available(), "model": _MODEL if is_available() else None}
+
+
+def _call(instructions: str, user_input: str, timeout: int = 40) -> str:
+    """Call the OpenAI Responses API and return the output text."""
+    if not is_available():
+        raise RuntimeError("LLM not configured (set OPENAI_API_KEY).")
+    resp = requests.post(
+        f"{_BASE_URL}/responses",
+        headers={"Authorization": f"Bearer {_API_KEY}",
+                 "Content-Type": "application/json"},
+        json={"model": _MODEL, "instructions": instructions, "input": user_input},
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    return _extract_text(resp.json())
+
+
+def _extract_text(payload: Dict[str, Any]) -> str:
+    """Robustly pull text out of a Responses API payload."""
+    if isinstance(payload.get("output_text"), str) and payload["output_text"].strip():
+        return payload["output_text"].strip()
+    parts: List[str] = []
+    for item in payload.get("output", []) or []:
+        for content in item.get("content", []) or []:
+            if content.get("type") in ("output_text", "text") and content.get("text"):
+                parts.append(content["text"])
+    return "\n".join(parts).strip()
