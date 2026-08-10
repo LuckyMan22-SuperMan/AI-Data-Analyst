@@ -75,3 +75,38 @@ def _concentration(df: pd.DataFrame, cats: List[str], metric: str) -> List[Dict[
                 "detail": f"The top 3 {c} values account for {top3_share:.1f}% of total {metric}.",
             })
     return out
+
+
+def _trend(df: pd.DataFrame, date_col: str, metric: str) -> List[Dict[str, str]]:
+    tmp = df[[date_col, metric]].dropna()
+    tmp[date_col] = pd.to_datetime(tmp[date_col], errors="coerce")
+    tmp = tmp.dropna(subset=[date_col]).set_index(date_col).sort_index()
+    if tmp.empty:
+        return []
+    monthly = tmp[metric].resample("ME").sum()
+    monthly = monthly[monthly != 0]
+    if len(monthly) < 2:
+        return []
+    change = (monthly.iloc[-1] - monthly.iloc[0]) / abs(monthly.iloc[0]) * 100 if monthly.iloc[0] else 0
+    direction = "grew" if change >= 0 else "declined"
+    return [{
+        "title": f"{metric} trend",
+        "detail": f"{metric} {direction} {abs(change):.1f}% overall, from {monthly.iloc[0]:,.0f} to {monthly.iloc[-1]:,.0f} across {len(monthly)} months.",
+    }]
+
+
+def _seasonality(df: pd.DataFrame, date_col: str, metric: str) -> List[Dict[str, str]]:
+    tmp = df[[date_col, metric]].dropna()
+    tmp[date_col] = pd.to_datetime(tmp[date_col], errors="coerce")
+    tmp = tmp.dropna(subset=[date_col])
+    if tmp.empty:
+        return []
+    by_month = tmp.groupby(tmp[date_col].dt.month)[metric].mean()
+    if by_month.empty or len(by_month) < 3:
+        return []
+    names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    best, worst = by_month.idxmax(), by_month.idxmin()
+    return [{
+        "title": "Seasonality",
+        "detail": f"On average, {names[best-1]} is the strongest month for {metric} and {names[worst-1]} the weakest.",
+    }]
