@@ -61,3 +61,48 @@ def forecast(df: pd.DataFrame, periods: int = 6, period: str = "M",
     residuals = y - fitted
     sigma = float(np.std(residuals, ddof=1)) if n > 2 else float(np.std(residuals))
     ci = 1.96 * sigma
+
+    # Project future.
+    future_t = np.arange(n, n + periods)
+    future_trend = intercept + slope * future_t
+    if season_means is not None:
+        future_seasonal = season_means[future_t % m]
+    else:
+        future_seasonal = np.zeros(periods)
+    future = future_trend + future_seasonal
+
+    future_index = pd.date_range(series.index[-1], periods=periods + 1, freq=freq)[1:]
+
+    hist_labels = [d.strftime("%Y-%m-%d") for d in series.index]
+    fut_labels = [d.strftime("%Y-%m-%d") for d in future_index]
+
+    forecast_points = [
+        {"date": lbl, "value": round(float(v), 2),
+         "lower": round(float(v - ci), 2), "upper": round(float(v + ci), 2)}
+        for lbl, v in zip(fut_labels, future)
+    ]
+
+    return {
+        "metric": mcol,
+        "date_column": dcol,
+        "period": period,
+        "history": [{"date": l, "value": round(float(v), 2)} for l, v in zip(hist_labels, y)],
+        "forecast": forecast_points,
+        "chart": _forecast_chart(hist_labels, y, fut_labels, future, ci),
+        "model": {"slope": round(slope, 4), "intercept": round(intercept, 4),
+                  "seasonal": season_means is not None, "residual_std": round(sigma, 4)},
+        "explanation": _explain(mcol, y, future, slope, period, periods, season_means is not None),
+    }
+
+
+def _forecast_chart(hist_labels: List[str], y: np.ndarray,
+                    fut_labels: List[str], future: np.ndarray, ci: float) -> Dict[str, Any]:
+    labels = hist_labels + fut_labels
+    nh, nf = len(hist_labels), len(fut_labels)
+    actual = list(map(float, y)) + [None] * nf
+    # Connect the forecast line to the last actual point for a continuous look.
+    fc = [None] * (nh - 1) + [float(y[-1])] + [round(float(v), 2) for v in future]
+    upper = [None] * nh + [round(float(v + ci), 2) for v in future]
+    lower = [None] * nh + [round(float(v - ci), 2) for v in future]
+    return {"type": "line", "labels": labels,
+            "actual": actual, "forecast": fc, "upper": upper, "lower": lower}
