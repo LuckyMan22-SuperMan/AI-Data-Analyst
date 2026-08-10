@@ -40,3 +40,38 @@ def generate(df: pd.DataFrame) -> Dict[str, Any]:
     # Optional LLM polish of the phrasing (kept faithful to the numbers).
     polished = _polish(findings)
     return {"metric_used": metric, "insights": polished, "count": len(polished)}
+
+
+def _category_extremes(df: pd.DataFrame, cats: List[str], metric: str) -> List[Dict[str, str]]:
+    out = []
+    for c in cats[:3]:
+        if df[c].nunique() < 2 or df[c].nunique() > 50:
+            continue
+        grouped = df.groupby(c, dropna=True)[metric].sum().sort_values(ascending=False)
+        if grouped.empty:
+            continue
+        top, bottom = grouped.index[0], grouped.index[-1]
+        out.append({
+            "title": f"Best {c} by {metric}",
+            "detail": f"'{top}' leads with {grouped.iloc[0]:,.2f}, while '{bottom}' is lowest at {grouped.iloc[-1]:,.2f}.",
+        })
+    return out
+
+
+def _concentration(df: pd.DataFrame, cats: List[str], metric: str) -> List[Dict[str, str]]:
+    out = []
+    for c in cats[:2]:
+        n = df[c].nunique()
+        if n < 3 or n > 50:
+            continue
+        grouped = df.groupby(c, dropna=True)[metric].sum().sort_values(ascending=False)
+        total = grouped.sum()
+        if total <= 0:
+            continue
+        top3_share = grouped.head(3).sum() / total * 100
+        if top3_share >= 60:
+            out.append({
+                "title": f"High concentration in {c}",
+                "detail": f"The top 3 {c} values account for {top3_share:.1f}% of total {metric}.",
+            })
+    return out
