@@ -175,3 +175,22 @@ def _pick_period(q: str) -> str:
 def _extract_int(q: str) -> Optional[int]:
     m = re.search(r"\btop\s+(\d+)\b", q) or re.search(r"\b(\d+)\b", q)
     return int(m.group(1)) if m else None
+
+
+# --------------------------------------------------------------------------- #
+# Plan validation
+# --------------------------------------------------------------------------- #
+def sanitize_plan(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
+    cols = {str(c) for c in df.columns}
+    op = plan.get("operation")
+    if op not in {"aggregate", "timeseries", "value_counts", "describe", "correlation", "table"}:
+        op = "table"
+    x = plan.get("x") if plan.get("x") in cols else None
+    y = plan.get("y") if plan.get("y") in cols else None
+    agg = plan.get("agg") if plan.get("agg") in AGGS else "sum"
+    chart = plan.get("chart") if plan.get("chart") in CHARTS else "table"
+    top_n = plan.get("top_n")
+    top_n = int(top_n) if isinstance(top_n, (int, float)) and top_n else None
+    period = plan.get("period") if plan.get("period") in {"D", "W", "M", "Q", "Y"} else None
+    return {"operation": op, "x": x, "y": y, "agg": agg, "period": period,
+            "top_n": top_n, "ascending": bool(plan.get("ascending", False)), "chart": chart}
