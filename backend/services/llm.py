@@ -56,3 +56,32 @@ def _extract_text(payload: Dict[str, Any]) -> str:
             if content.get("type") in ("output_text", "text") and content.get("text"):
                 parts.append(content["text"])
     return "\n".join(parts).strip()
+
+
+# --------------------------------------------------------------------------- #
+def plan(question: str, schema: Dict[str, Any],
+         history: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+    """Ask the LLM to choose a structured analysis plan. Returns None on failure."""
+    if not is_available():
+        return None
+    instructions = (
+        "You are a data analysis planner. Given a dataset schema and a user "
+        "question, output ONLY a compact JSON object describing how to analyze "
+        "the data. Do not include prose. Schema of the JSON:\n"
+        '{"operation": one of ["aggregate","timeseries","value_counts",'
+        '"describe","correlation","table"], "x": column name or null, '
+        '"y": numeric column name or null, "agg": one of '
+        '["sum","mean","count","min","max"], "period": one of '
+        '["D","W","M","Q","Y"] or null, "top_n": integer or null, '
+        '"ascending": boolean, "chart": one of '
+        '["bar","line","pie","histogram","scatter","table"]}\n'
+        "Only use column names that exist in the schema."
+    )
+    hist = "\n".join(f"{h['role']}: {h['content']}" for h in history[-6:])
+    user = (f"Schema: {json.dumps(schema)}\n"
+            f"Conversation so far:\n{hist}\n\nQuestion: {question}\n\nJSON plan:")
+    try:
+        text = _call(instructions, user)
+        return _parse_json(text)
+    except Exception:  # noqa: BLE001
+        return None
