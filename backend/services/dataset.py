@@ -83,3 +83,32 @@ def records(df: pd.DataFrame) -> List[Dict[str, Any]]:
     for _, row in df.iterrows():
         out.append({str(k): _json_safe(v) for k, v in row.items()})
     return out
+
+
+def build_preview(ds: Dataset, head_n: int = 20) -> Dict[str, Any]:
+    df = ds.df
+    missing = {str(c): int(df[c].isna().sum()) for c in df.columns}
+    dtypes = {str(c): str(df[c].dtype) for c in df.columns}
+    n = len(df)
+    column_info = [
+        {
+            "name": str(c),
+            "dtype": str(df[c].dtype),
+            "missing": missing[str(c)],
+            "missing_pct": round(missing[str(c)] / n * 100, 2) if n else 0.0,
+            "unique": int(df[c].nunique(dropna=True)),
+        }
+        for c in df.columns
+    ]
+    return {
+        "dataset_id": ds.dataset_id,
+        "filename": ds.filename,
+        "rows": int(n),
+        "columns": int(df.shape[1]),
+        "column_names": [str(c) for c in df.columns],
+        "column_info": column_info,
+        "duplicate_rows": int(df.duplicated().sum()),
+        "dtypes": dtypes,
+        "missing_values": missing,
+        "head": records(df.head(head_n)),
+    }
