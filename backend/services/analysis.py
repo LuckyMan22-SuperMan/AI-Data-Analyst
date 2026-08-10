@@ -146,3 +146,32 @@ def heuristic_plan(question: str, df: pd.DataFrame) -> Dict[str, Any]:
     elif numeric:
         plan.update(operation="describe", chart="table")
     return plan
+
+
+def _pick_agg(q: str) -> str:
+    if any(k in q for k in ("average", "avg", "mean")):
+        return "mean"
+    if any(k in q for k in ("count", "number of", "how many")):
+        return "count"
+    if "max" in q or "maximum" in q or "highest" in q:
+        return "max"
+    if "min" in q or "minimum" in q or "lowest" in q:
+        return "min"
+    return "sum"
+
+
+def _pick_period(q: str) -> str:
+    if "year" in q:
+        return "Y"
+    if "quarter" in q:
+        return "Q"
+    if "week" in q:
+        return "W"
+    if "day" in q or "daily" in q:
+        return "D"
+    return "M"
+
+
+def _extract_int(q: str) -> Optional[int]:
+    m = re.search(r"\btop\s+(\d+)\b", q) or re.search(r"\b(\d+)\b", q)
+    return int(m.group(1)) if m else None
