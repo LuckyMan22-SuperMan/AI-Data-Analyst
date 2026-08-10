@@ -112,3 +112,31 @@ def build_preview(ds: Dataset, head_n: int = 20) -> Dict[str, Any]:
         "missing_values": missing,
         "head": records(df.head(head_n)),
     }
+
+
+class DatasetService:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._datasets: Dict[str, Dataset] = {}
+
+    def register(self, dataset_id: str, filename: str, path: Path,
+                 df: pd.DataFrame) -> Dataset:
+        ds = Dataset(dataset_id=dataset_id, filename=filename, path=str(path), df=df)
+        with self._lock:
+            self._datasets[dataset_id] = ds
+        return ds
+
+    def get(self, dataset_id: str) -> Dataset:
+        with self._lock:
+            ds = self._datasets.get(dataset_id)
+        if ds is None:
+            raise KeyError(dataset_id)
+        return ds
+
+    def exists(self, dataset_id: str) -> bool:
+        with self._lock:
+            return dataset_id in self._datasets
+
+
+# Module-level singleton.
+service = DatasetService()
