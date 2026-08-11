@@ -281,3 +281,64 @@ def _exec_value_counts(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]
         "summary": {"operation": "value_counts", "column": x,
                     "items": [{"label": l, "value": v} for l, v in zip(labels, values)]},
     }
+
+
+def _exec_correlation(df: pd.DataFrame) -> Dict[str, Any]:
+    num = df.select_dtypes(include=[np.number])
+    if num.shape[1] < 2:
+        return _exec_describe(df)
+    corr = num.corr(numeric_only=True).round(3)
+    cols = [str(c) for c in corr.columns]
+    rows = [[str(idx)] + [float(v) for v in corr.loc[idx].values] for idx in corr.index]
+    # Strongest off-diagonal pair.
+    pairs = []
+    for i in range(len(cols)):
+        for j in range(i + 1, len(cols)):
+            pairs.append((cols[i], cols[j], float(corr.iloc[i, j])))
+    pairs.sort(key=lambda t: abs(t[2]), reverse=True)
+    return {
+        "table": _table(["column"] + cols, rows),
+        "chart": {"type": "table"},
+        "summary": {"operation": "correlation",
+                    "strongest": [{"a": a, "b": b, "r": round(r, 3)} for a, b, r in pairs[:5]]},
+    }
+
+
+def _exec_describe(df: pd.DataFrame) -> Dict[str, Any]:
+    num = df.select_dtypes(include=[np.number])
+    if num.empty:
+        # Categorical overview instead.
+        rows = [[str(c), int(df[c].nunique()), str(df[c].mode().iloc[0]) if not df[c].mode().empty else ""]
+                for c in df.columns]
+        return {"table": _table(["column", "unique", "most_common"], rows),
+                "chart": {"type": "table"},
+                "summary": {"operation": "describe", "note": "no numeric columns"}}
+    desc = num.describe().round(3)
+    stats = [str(i) for i in desc.index]
+    cols = [str(c) for c in desc.columns]
+    rows = [[stat] + [float(desc.loc[stat, c]) for c in cols] for stat in stats]
+    return {
+        "table": _table(["stat"] + cols, rows),
+        "chart": {"type": "table"},
+        "summary": {"operation": "describe",
+                    "columns": {c: {s: float(desc.loc[s, c]) for s in stats} for c in cols}},
+    }
+
+
+def _exec_table(df: pd.DataFrame) -> Dict[str, Any]:
+    head = df.head(20)
+    cols = [str(c) for c in head.columns]
+    rows = [[_json_safe(v) for v in row] for row in head.itertuples(index=False, name=None)]
+    return {"table": {"columns": cols, "rows": rows}, "chart": {"type": "table"},
+            "summary": {"operation": "table", "rows_shown": len(rows)}}
+
+
+def _chart(kind: str, labels: List[str], values: List[float], label: str) -> Dict[str, Any]:
+    if kind == "pie":
+        return {"type": "pie", "labels": labels,
+                "datasets": [{"label": label, "data": values}]}
+    if kind == "line":
+        return {"type": "line", "labels": labels,
+                "datasets": [{"label": label, "data": values}]}
+    return {"type": "bar", "labels": labels,
+            "datasets": [{"label": label, "data": values}]}
