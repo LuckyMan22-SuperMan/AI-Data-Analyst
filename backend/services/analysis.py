@@ -240,3 +240,44 @@ def _exec_aggregate(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
         "summary": {"operation": "aggregate", "group_by": x, "metric": y_label,
                     "items": [{"label": l, "value": round(v, 4)} for l, v in zip(labels, values)]},
     }
+
+
+# pandas >= 3.0 requires period-end aliases for resampling.
+_RESAMPLE_ALIAS = {"D": "D", "W": "W", "M": "ME", "Q": "QE", "Y": "YE"}
+
+
+def _exec_timeseries(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
+    x, y, period = plan["x"], plan["y"], plan["period"] or "M"
+    freq = _RESAMPLE_ALIAS.get(period, "ME")
+    agg = plan["agg"] if plan["agg"] != "count" else "sum"
+    tmp = df[[x] + ([y] if y else [])].dropna(subset=[x]).copy()
+    tmp[x] = pd.to_datetime(tmp[x], errors="coerce")
+    tmp = tmp.dropna(subset=[x]).set_index(x).sort_index()
+    if y:
+        series = tmp[y].resample(freq).agg(agg)
+        y_label = f"{agg}({y})"
+    else:
+        series = tmp.resample(freq).size()
+        y_label = "count"
+    series = series.dropna()
+    labels = [d.strftime("%Y-%m-%d") for d in series.index]
+    values = [float(v) for v in series.values]
+    return {
+        "table": _table([str(x), y_label], list(zip(labels, values))),
+        "chart": _chart("line", labels, values, y_label),
+        "summary": {"operation": "timeseries", "period": period, "metric": y_label,
+                    "points": [{"date": l, "value": round(v, 4)} for l, v in zip(labels, values)]},
+    }
+
+
+def _exec_value_counts(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
+    x = plan["x"]
+    vc = df[x].value_counts(dropna=True).head(plan["top_n"] or 20)
+    labels = [str(i) for i in vc.index.tolist()]
+    values = [int(v) for v in vc.values]
+    return {
+        "table": _table([str(x), "count"], list(zip(labels, values))),
+        "chart": _chart(plan["chart"], labels, values, "count"),
+        "summary": {"operation": "value_counts", "column": x,
+                    "items": [{"label": l, "value": v} for l, v in zip(labels, values)]},
+    }
