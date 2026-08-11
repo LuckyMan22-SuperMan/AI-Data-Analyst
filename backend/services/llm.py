@@ -85,3 +85,21 @@ def plan(question: str, schema: Dict[str, Any],
         return _parse_json(text)
     except Exception:  # noqa: BLE001
         return None
+
+
+def explain(question: str, result_summary: Dict[str, Any],
+            history: List[Dict[str, str]]) -> Optional[str]:
+    """Ask the LLM to narrate the computed result. Returns None on failure."""
+    if not is_available():
+        return None
+    instructions = (
+        "You are a concise data analyst. Explain the computed result to a "
+        "business user in 2-4 sentences. Use ONLY the numbers provided; never "
+        "invent data. Mention the single most important takeaway first."
+    )
+    user = (f"Question: {question}\n"
+            f"Computed result (JSON): {json.dumps(result_summary)[:6000]}")
+    try:
+        return _call(instructions, user)
+    except Exception:  # noqa: BLE001
+        return None
