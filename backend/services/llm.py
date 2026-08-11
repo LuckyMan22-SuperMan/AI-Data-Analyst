@@ -103,3 +103,18 @@ def explain(question: str, result_summary: Dict[str, Any],
         return _call(instructions, user)
     except Exception:  # noqa: BLE001
         return None
+
+
+def _parse_json(text: str) -> Optional[Dict[str, Any]]:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:]
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1:
+        return None
+    try:
+        return json.loads(text[start:end + 1])
+    except json.JSONDecodeError:
+        return None
