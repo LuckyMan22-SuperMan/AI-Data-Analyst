@@ -110,3 +110,41 @@ def _seasonality(df: pd.DataFrame, date_col: str, metric: str) -> List[Dict[str,
         "title": "Seasonality",
         "detail": f"On average, {names[best-1]} is the strongest month for {metric} and {names[worst-1]} the weakest.",
     }]
+
+
+def _data_quality(df: pd.DataFrame) -> List[Dict[str, str]]:
+    out = []
+    total = len(df)
+    miss = df.isna().sum()
+    worst = miss[miss > 0].sort_values(ascending=False)
+    if not worst.empty:
+        col = worst.index[0]
+        out.append({
+            "title": "Missing data",
+            "detail": f"'{col}' has the most missing values ({int(worst.iloc[0])}, {worst.iloc[0]/total*100:.1f}%). Consider imputing or dropping.",
+        })
+    dupes = int(df.duplicated().sum())
+    if dupes:
+        out.append({"title": "Duplicate rows",
+                    "detail": f"{dupes} duplicate row(s) detected ({dupes/total*100:.1f}%). Consider removing them."})
+    return out
+
+
+def _outliers(df: pd.DataFrame, numeric: List[str]) -> List[Dict[str, str]]:
+    out = []
+    for c in numeric[:3]:
+        s = df[c].dropna()
+        if len(s) < 8:
+            continue
+        q1, q3 = s.quantile(0.25), s.quantile(0.75)
+        iqr = q3 - q1
+        if iqr <= 0:
+            continue
+        lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+        n_out = int(((s < lo) | (s > hi)).sum())
+        if n_out:
+            out.append({
+                "title": f"Outliers in {c}",
+                "detail": f"{n_out} value(s) fall outside the typical range [{lo:,.2f}, {hi:,.2f}].",
+            })
+    return out
