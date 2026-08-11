@@ -194,3 +194,49 @@ def sanitize_plan(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
     period = plan.get("period") if plan.get("period") in {"D", "W", "M", "Q", "Y"} else None
     return {"operation": op, "x": x, "y": y, "agg": agg, "period": period,
             "top_n": top_n, "ascending": bool(plan.get("ascending", False)), "chart": chart}
+
+
+# --------------------------------------------------------------------------- #
+# Execution
+# --------------------------------------------------------------------------- #
+def execute(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
+    op = plan["operation"]
+    if op == "aggregate":
+        return _exec_aggregate(plan, df)
+    if op == "timeseries":
+        return _exec_timeseries(plan, df)
+    if op == "value_counts":
+        return _exec_value_counts(plan, df)
+    if op == "correlation":
+        return _exec_correlation(df)
+    if op == "describe":
+        return _exec_describe(df)
+    return _exec_table(df)
+
+
+def _table(columns: List[str], rows: List[List[Any]]) -> Dict[str, Any]:
+    return {"columns": columns,
+            "rows": [[_json_safe(v) for v in r] for r in rows]}
+
+
+def _exec_aggregate(plan: Dict[str, Any], df: pd.DataFrame) -> Dict[str, Any]:
+    x, y, agg = plan["x"], plan["y"], plan["agg"]
+    if not x:
+        return _exec_describe(df)
+    if agg == "count" or not y:
+        grouped = df.groupby(x, dropna=True).size().rename("count")
+        y_label = "count"
+    else:
+        grouped = df.groupby(x, dropna=True)[y].agg(agg)
+        y_label = f"{agg}({y})"
+    grouped = grouped.sort_values(ascending=plan["ascending"])
+    if plan["top_n"]:
+        grouped = grouped.head(plan["top_n"])
+    labels = [str(i) for i in grouped.index.tolist()]
+    values = [float(v) for v in grouped.values]
+    return {
+        "table": _table([str(x), y_label], list(zip(labels, values))),
+        "chart": _chart(plan["chart"], labels, values, y_label),
+        "summary": {"operation": "aggregate", "group_by": x, "metric": y_label,
+                    "items": [{"label": l, "value": round(v, 4)} for l, v in zip(labels, values)]},
+    }
