@@ -60,3 +60,21 @@ def _duplicates(df: pd.DataFrame) -> List[Dict[str, Any]]:
         "suggestion": "Remove duplicates (keep the first occurrence).",
         "severity": "medium",
     }]
+
+
+def _invalid_dates(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    out = []
+    for c in df.columns:
+        name = str(c).lower()
+        is_texty = pd.api.types.is_object_dtype(df[c]) or pd.api.types.is_string_dtype(df[c])
+        if is_texty and any(k in name for k in ("date", "time", "day")):
+            parsed = pd.to_datetime(df[c], errors="coerce")
+            n_bad = int(parsed.isna().sum() - df[c].isna().sum())
+            if 0 < n_bad:
+                out.append({
+                    "type": "invalid_dates", "column": str(c), "count": n_bad,
+                    "detail": f"{n_bad} value(s) could not be parsed as dates.",
+                    "suggestion": "Standardize the date format or set unparseable values to null.",
+                    "severity": "medium",
+                })
+    return out
