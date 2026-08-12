@@ -38,3 +38,4 @@ class PreviewResponse(BaseModel):
 class AnalyzeRequest(BaseModel):
     dataset_id: str
     question: str
+    answer: str
