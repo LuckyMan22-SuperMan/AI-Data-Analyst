@@ -342,3 +342,42 @@ def _chart(kind: str, labels: List[str], values: List[float], label: str) -> Dic
                 "datasets": [{"label": label, "data": values}]}
     return {"type": "bar", "labels": labels,
             "datasets": [{"label": label, "data": values}]}
+
+
+# --------------------------------------------------------------------------- #
+# Templated explanation (offline fallback)
+# --------------------------------------------------------------------------- #
+def template_explanation(plan: Dict[str, Any], result: Dict[str, Any]) -> str:
+    s = result["summary"]
+    op = s["operation"]
+    if op == "aggregate" and s.get("items"):
+        items = s["items"]
+        top = items[0]
+        direction = "lowest" if plan["ascending"] else "highest"
+        msg = (f"Grouping {s['metric']} by {s['group_by']}, "
+               f"'{top['label']}' has the {direction} value at {top['value']:,.2f}.")
+        if len(items) > 1:
+            total = sum(i["value"] for i in items)
+            if total:
+                msg += f" It accounts for {top['value'] / total * 100:.1f}% of the shown total."
+        return msg
+    if op == "timeseries" and s.get("points"):
+        pts = s["points"]
+        first, last = pts[0], pts[-1]
+        if first["value"]:
+            change = (last["value"] - first["value"]) / abs(first["value"]) * 100
+            trend = "up" if change >= 0 else "down"
+            return (f"{s['metric']} went {trend} {abs(change):.1f}% from {first['value']:,.2f} "
+                    f"on {first['date']} to {last['value']:,.2f} on {last['date']} "
+                    f"across {len(pts)} periods.")
+        return f"Computed {s['metric']} across {len(pts)} periods."
+    if op == "value_counts" and s.get("items"):
+        top = s["items"][0]
+        return f"'{top['label']}' is the most frequent value in {s['column']} with {top['value']} rows."
+    if op == "correlation" and s.get("strongest"):
+        p = s["strongest"][0]
+        strength = "strong" if abs(p["r"]) > 0.7 else "moderate" if abs(p["r"]) > 0.4 else "weak"
+        return f"The strongest relationship is between {p['a']} and {p['b']} (r = {p['r']}, a {strength} correlation)."
+    if op == "describe":
+        return "Summary statistics for the numeric columns are shown below."
+    return "Here is a preview of the dataset."
