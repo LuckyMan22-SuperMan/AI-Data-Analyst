@@ -33,3 +33,8 @@ class PreviewResponse(BaseModel):
     dtypes: Dict[str, str]
     missing_values: Dict[str, int]
     head: List[Dict[str, Any]]
+
+
+class AnalyzeRequest(BaseModel):
+    dataset_id: str
+    question: str
