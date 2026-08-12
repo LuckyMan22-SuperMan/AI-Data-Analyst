@@ -21,3 +21,15 @@ class UploadResponse(BaseModel):
     column_names: List[str]
     sample: List[Dict[str, Any]]
 
+
+class PreviewResponse(BaseModel):
+    dataset_id: str
+    filename: str
+    rows: int
+    columns: int
+    column_names: List[str]
+    column_info: List[ColumnInfo]
+    duplicate_rows: int
+    dtypes: Dict[str, str]
+    missing_values: Dict[str, int]
+    head: List[Dict[str, Any]]
