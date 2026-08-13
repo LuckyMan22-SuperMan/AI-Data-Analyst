@@ -381,3 +381,37 @@ def template_explanation(plan: Dict[str, Any], result: Dict[str, Any]) -> str:
     if op == "describe":
         return "Summary statistics for the numeric columns are shown below."
     return "Here is a preview of the dataset."
+
+
+# --------------------------------------------------------------------------- #
+# Orchestration
+# --------------------------------------------------------------------------- #
+def analyze(question: str, df: pd.DataFrame,
+            history: List[Dict[str, str]]) -> Dict[str, Any]:
+    schema = schema_summary(df)
+
+    llm_plan = llm.plan(question, schema, history)
+    if llm_plan:
+        plan = sanitize_plan(llm_plan, df)
+        plan_source = "llm"
+    else:
+        plan = heuristic_plan(question, df)
+        plan_source = "heuristic"
+
+    result = execute(plan, df)
+
+    explanation = llm.explain(question, result["summary"], history)
+    explain_source = "llm"
+    if not explanation:
+        explanation = template_explanation(plan, result)
+        explain_source = "template"
+
+    return {
+        "question": question,
+        "plan": plan,
+        "plan_source": plan_source,
+        "explanation": explanation,
+        "explanation_source": explain_source,
+        "table": result["table"],
+        "chart": result["chart"],
+    }
