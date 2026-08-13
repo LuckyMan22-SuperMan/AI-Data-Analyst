@@ -383,9 +383,7 @@ def template_explanation(plan: Dict[str, Any], result: Dict[str, Any]) -> str:
     return "Here is a preview of the dataset."
 
 
-# --------------------------------------------------------------------------- #
-# Orchestration
-# --------------------------------------------------------------------------- #
+
 def analyze(question: str, df: pd.DataFrame,
             history: List[Dict[str, str]]) -> Dict[str, Any]:
     schema = schema_summary(df)
