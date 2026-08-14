@@ -78,3 +78,16 @@ def _invalid_dates(df: pd.DataFrame) -> List[Dict[str, Any]]:
                     "severity": "medium",
                 })
     return out
+
+
+def _wrong_types(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    out = []
+    for c in df.columns:
+        is_texty = pd.api.types.is_object_dtype(df[c]) or pd.api.types.is_string_dtype(df[c])
+        if not is_texty:
+            continue
+        non_null = df[c].dropna()
+        if non_null.empty:
+            continue
+        coerced = pd.to_numeric(non_null, errors="coerce")
+        frac_numeric = coerced.notna().mean()
