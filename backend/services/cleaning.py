@@ -91,3 +91,13 @@ def _wrong_types(df: pd.DataFrame) -> List[Dict[str, Any]]:
             continue
         coerced = pd.to_numeric(non_null, errors="coerce")
         frac_numeric = coerced.notna().mean()
+        if frac_numeric >= 0.9:
+            out.append({
+                "type": "wrong_dtype", "column": str(c), "count": int(non_null.shape[0]),
+                "detail": f"Stored as text but {frac_numeric*100:.0f}% of values are numeric.",
+                "suggestion": "Convert this column to a numeric type.",
+                "severity": "low",
+            })
+    return out
+
+
