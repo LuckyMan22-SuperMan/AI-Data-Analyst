@@ -101,3 +101,24 @@ def _wrong_types(df: pd.DataFrame) -> List[Dict[str, Any]]:
     return out
 
 
+def _outliers(df: pd.DataFrame) -> List[Dict[str, Any]]:
+    out = []
+    numeric = classify_columns(df)["numeric"]
+    for c in numeric:
+        s = df[c].dropna()
+        if len(s) < 8:
+            continue
+        q1, q3 = s.quantile(0.25), s.quantile(0.75)
+        iqr = q3 - q1
+        if iqr <= 0:
+            continue
+        lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+        n_out = int(((s < lo) | (s > hi)).sum())
+        if n_out:
+            out.append({
+                "type": "outliers", "column": str(c), "count": n_out,
+                "detail": f"{n_out} value(s) outside [{lo:,.2f}, {hi:,.2f}].",
+                "suggestion": "Investigate; consider capping (winsorize) or removing if erroneous.",
+                "severity": "low",
+            })
+    return out
