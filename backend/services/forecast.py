@@ -106,3 +106,15 @@ def _forecast_chart(hist_labels: List[str], y: np.ndarray,
     lower = [None] * nh + [round(float(v - ci), 2) for v in future]
     return {"type": "line", "labels": labels,
             "actual": actual, "forecast": fc, "upper": upper, "lower": lower}
+
+
+def _explain(metric: str, y: np.ndarray, future: np.ndarray, slope: float,
+             period: str, periods: int, seasonal: bool) -> str:
+    period_name = {"D": "days", "W": "weeks", "M": "months", "Q": "quarters", "Y": "years"}.get(period, "periods")
+    direction = "upward" if slope > 0 else "downward" if slope < 0 else "flat"
+    last, nxt = float(y[-1]), float(future[0])
+    change = (nxt - last) / abs(last) * 100 if last else 0.0
+    season_txt = " with a seasonal adjustment" if seasonal else ""
+    return (f"Based on the {direction} trend{season_txt}, {metric} is projected at "
+            f"{nxt:,.2f} next period ({change:+.1f}% vs the latest {last:,.2f}), "
+            f"forecast over the next {periods} {period_name}. Shaded bands show the 95% confidence interval.")
