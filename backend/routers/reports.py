@@ -79,3 +79,10 @@ def export_report(dataset_id: str) -> HTMLResponse:
         content=html_doc,
         headers={"Content-Disposition": f'attachment; filename="report_{dataset_id}.html"'},
     )
+
+
+def _render_report(filename: str, preview: dict, ins: dict, clean_res: dict) -> str:
+    esc = html.escape
+    insight_items = "".join(
+        f"<li><strong>{esc(i['title'])}:</strong> {esc(i['detail'])}</li>" for i in ins["insights"]
+    )
