@@ -38,4 +38,9 @@ class PreviewResponse(BaseModel):
 class AnalyzeRequest(BaseModel):
     dataset_id: str
     question: str
-    answer: str
+
+
+class ChartData(BaseModel):
+    type: str
+    labels: Optional[List[Any]] = None
+    datasets: Optional[List[Dict[str, Any]]] = None
