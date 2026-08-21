@@ -86,3 +86,16 @@ def _render_report(filename: str, preview: dict, ins: dict, clean_res: dict) -> 
     insight_items = "".join(
         f"<li><strong>{esc(i['title'])}:</strong> {esc(i['detail'])}</li>" for i in ins["insights"]
     )
+    issue_items = "".join(
+        f"<li><span class='sev {esc(i['severity'])}'>{esc(i['severity'])}</span> "
+        f"<strong>{esc(i['type'])}</strong>"
+        f"{(' · ' + esc(str(i['column']))) if i.get('column') else ''}: "
+        f"{esc(i['detail'])} <em>{esc(i['suggestion'])}</em></li>"
+        for i in clean_res["issues"]
+    ) or "<li>No data-quality issues detected.</li>"
+    cols = "".join(f"<th>{esc(c)}</th>" for c in preview["column_names"])
+    body_rows = "".join(
+        "<tr>" + "".join(f"<td>{esc('' if row.get(c) is None else str(row.get(c)))}</td>"
+                         for c in preview["column_names"]) + "</tr>"
+        for row in preview["head"]
+    )
