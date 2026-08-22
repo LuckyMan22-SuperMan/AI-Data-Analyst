@@ -99,3 +99,22 @@ def _render_report(filename: str, preview: dict, ins: dict, clean_res: dict) -> 
                          for c in preview["column_names"]) + "</tr>"
         for row in preview["head"]
     )
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Data Report - {esc(filename)}</title>
+<style>
+body{{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#1e293b}}
+h1{{color:#2563eb}}h2{{border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-top:32px}}
+table{{border-collapse:collapse;width:100%;font-size:13px}}th,td{{border:1px solid #e2e8f0;padding:6px 10px;text-align:left}}
+th{{background:#f1f5f9}}ul{{line-height:1.7}}
+.sev{{font-size:11px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:8px}}
+.high{{background:#fee2e2;color:#b91c1c}}.medium{{background:#fef3c7;color:#b45309}}.low{{background:#e0f2fe;color:#0369a1}}
+.meta{{color:#64748b;font-size:13px}}
+</style></head><body>
+<h1>AI Data Analyst — Report</h1>
+<p class="meta">File: <strong>{esc(filename)}</strong> · {preview['rows']:,} rows × {preview['columns']} columns ·
+Duplicates: {preview['duplicate_rows']}</p>
+<h2>Business Insights</h2><ul>{insight_items}</ul>
+<h2>Data Cleaning Suggestions</h2><ul>{issue_items}</ul>
+<h2>Data Sample (first 10 rows)</h2>
+<table><thead><tr>{cols}</tr></thead><tbody>{body_rows}</tbody></table>
+</body></html>"""
